@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>발표자 추첨기 (Presenter Picker)</title>
+    <style>
+        :root {
+            --primary-color: #4f46e5;
+            --primary-hover: #4338ca;
+            --danger-color: #ef4444;
+            --danger-hover: #dc2626;
+            --bg-color: #f9fafb;
+            --card-bg: #ffffff;
+            --text-main: #111827;
+            --text-muted: #6b7280;
+            --border-color: #e5e7eb;
+            --radius: 12px;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            line-height: 1.5;
+            padding: 2rem 1rem;
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1000px;
+            width: 100%;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        h2 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            border-bottom: 2px solid var(--bg-color);
+            padding-bottom: 0.5rem;
+            margin-bottom: 0.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .badge {
+            background-color: var(--primary-color);
+            color: white;
+            font-size: 0.75rem;
+            padding: 0.2rem 0.6rem;
+            border-radius: 999px;
+            font-weight: bold;
+        }
+
+        textarea {
+            width: 100%;
+            height: 120px;
+            padding: 0.75rem;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            resize: vertical;
+            font-size: 0.95rem;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2);
+        }
+
+        button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            font-size: 1rem;
+        }
+
+        button:hover {
+            background-color: var(--primary-hover);
+        }
+
+        button:disabled {
+            background-color: var(--text-muted);
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+
+        button.danger {
+            background-color: var(--danger-color);
+        }
+
+        button.danger:hover {
+            background-color: var(--danger-hover);
+        }
+
+        .candidate-list {
+            list-style: none;
+            max-height: 250px;
+            overflow-y: auto;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+        }
+
+        .candidate-item {
+            padding: 0.75rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.95rem;
+        }
+
+        .candidate-item:last-child {
+            border-bottom: none;
+        }
+
+        .candidate-item button {
+            background: none;
+            color: var(--danger-color);
+            padding: 0.25rem 0.5rem;
+            font-size: 0.8rem;
+        }
+
+        .candidate-item button:hover {
+            background-color: #fee2e2;
+        }
+
+        .draw-section {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            text-align: center;
+        }
+
+        .slot-machine {
+            background-color: var(--bg-color);
+            border: 2px solid var(--border-color);
+            border-radius: var(--radius);
+            height: 150px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            font-weight: 800;
+            color: var(--primary-color);
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* 롤링 효과를 위한 텍스트 애니메이션 클래스 */
+        .rolling {
+            animation: vibrate 0.1s linear infinite;
+            color: var(--text-muted);
+            font-size: 2.5rem;
+        }
+
+        @keyframes vibrate {
+            0% { transform: translateY(-2px); }
+            50% { transform: translateY(2px); }
+            100% { transform: translateY(-2px); }
+        }
+
+        .options {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            font-size: 0.95rem;
+            color: var(--text-muted);
+        }
+
+        .history-list {
+            list-style: none;
+            max-height: 200px;
+            overflow-y: auto;
+            font-size: 0.9rem;
+        }
+
+        .history-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem 0;
+            border-bottom: 1px dashed var(--border-color);
+        }
+
+        .history-time {
+            color: var(--text-muted);
+            font-size: 0.8rem;
+        }
+
+        .empty-state {
+            text-align: center;
+            color: var(--text-muted);
+            padding: 2rem;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- 왼쪽: 명단 관리 -->
+    <div class="card">
+        <h2>
+            후보 명단 관리
+            <span class="badge" id="candidateCount">0명</span>
+        </h2>
+        
+        <div>
+            <textarea id="bulkInput" placeholder="이름을 입력하세요. 쉼표(,)나 줄바꿈(엔터)으로 여러 명을 한 번에 입력할 수 있습니다.&#10;예: 홍길동, 김철수, 이영희"></textarea>
+            <button onclick="addCandidates()" style="width: 100%; margin-top: 0.5rem;">명단에 추가하기</button>
+        </div>
+
+        <div style="margin-top: 1rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                <span style="font-size: 0.9rem; font-weight: bold;">현재 대기열</span>
+                <button class="danger" onclick="clearCandidates()" style="padding: 0.3rem 0.6rem; font-size: 0.8rem;">전체 삭제</button>
+            </div>
+            <ul class="candidate-list" id="candidateList">
+                <!-- JS로 렌더링 됨 -->
+            </ul>
+        </div>
+    </div>
+
+    <!-- 오른쪽: 추첨 및 기록 -->
+    <div class="card draw-section">
+        <h2>발표자 추첨</h2>
+        
+        <div class="slot-machine" id="resultDisplay">
+            대기 중...
+        </div>
+
+        <div class="options">
+            <input type="checkbox" id="excludePicked" checked>
+            <label for="excludePicked" style="cursor: pointer;">한 번 뽑힌 사람은 명단에서 제외 (중복 당첨 방지)</label>
+        </div>
+
+        <button id="drawBtn" onclick="startDraw()" style="font-size: 1.25rem; padding: 1rem;">🚀 추첨 시작하기</button>
+
+        <div style="text-align: left; margin-top: 1rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                <span style="font-size: 0.9rem; font-weight: bold;">추첨 로그 (최근 순)</span>
+                <button onclick="clearHistory()" style="background: none; color: var(--text-muted); padding: 0; font-size: 0.8rem; text-decoration: underline;">로그 지우기</button>
+            </div>
+            <ul class="history-list" id="historyList">
+                <!-- JS로 렌더링 됨 -->
+            </ul>
+        </div>
+    </div>
+</div>
+
+<script>
+    // 상태 관리 (State Management)
+    let state = {
+        candidates: [],
+        history: []
+    };
+
+    const STORAGE_KEY = 'presenter_picker_state';
+
+    // DOM 요소 캐싱
+    const els = {
+        input: document.getElementById('bulkInput'),
+        list: document.getElementById('candidateList'),
+        count: document.getElementById('candidateCount'),
+        display: document.getElementById('resultDisplay'),
+        drawBtn: document.getElementById('drawBtn'),
+        excludeBox: document.getElementById('excludePicked'),
+        historyList: document.getElementById('historyList')
+    };
+
+    // 초기화 로직 (localStorage 로드)
+    function init() {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+            try {
+                state = JSON.parse(saved);
+            } catch (e) {
+                console.error("데이터 복구 실패", e);
+            }
+        }
+        render();
+    }
+
+    // 상태 저장 로직
+    function saveState() {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        render();
+    }
+
+    // 명단 추가 (콤마, 줄바꿈 파싱)
+    function addCandidates() {
+        const text = els.input.value;
+        if (!text.trim()) return;
+
+        // 정규식을 사용해 줄바꿈 또는 콤마로 분리 후 공백 제거
+        const newNames = text.split(/[\n,]+/)
+                             .map(name => name.trim())
+                             .filter(name => name.length > 0);
+        
+        if (newNames.length === 0) return;
+
+        state.candidates = [...state.candidates, ...newNames];
+        els.input.value = ''; // 입력창 초기화
+        saveState();
+    }
+
+    // 특정 후보 삭제
+    function removeCandidate(index) {
+        state.candidates.splice(index, 1);
+        saveState();
+    }
+
+    // 전체 명단 삭제
+    function clearCandidates() {
+        if (confirm('현재 대기열의 명단을 모두 삭제하시겠습니까?')) {
+            state.candidates = [];
+            saveState();
+        }
+    }
+
+    // 추첨 로그 삭제
+    function clearHistory() {
+        if (confirm('추첨 기록을 모두 지우시겠습니까?')) {
+            state.history = [];
+            saveState();
+        }
+    }
+
+    // 추첨 로직 (슬롯머신 애니메이션 포함)
+    let drawInterval;
+    function startDraw() {
+        if (state.candidates.length === 0) {
+            alert('추첨할 후보가 없습니다. 명단을 추가해주세요.');
+            return;
+        }
+
+        // 상태 전환 (버튼 비활성화)
+        els.drawBtn.disabled = true;
+        els.drawBtn.innerText = '추첨 중...';
+        els.display.classList.add('rolling');
+
+        const duration = 2000; // 2초간 롤링
+        const speed = 50; // 50ms 마다 텍스트 변경
+        let elapsed = 0;
+
+        // 롤링 애니메이션
+        drawInterval = setInterval(() => {
+            const randomIndex = Math.floor(Math.random() * state.candidates.length);
+            els.display.innerText = state.candidates[randomIndex];
+            elapsed += speed;
+
+            if (elapsed >= duration) {
+                clearInterval(drawInterval);
+                finishDraw();
+            }
+        }, speed);
+    }
+
+    // 최종 당첨자 결정 및 후처리
+    function finishDraw() {
+        els.display.classList.remove('rolling');
+        
+        // 최종 결정 (Math.random 사용)
+        const winnerIndex = Math.floor(Math.random() * state.candidates.length);
+        const winner = state.candidates[winnerIndex];
+        
+        // 결과 표시
+        els.display.innerText = `🎉 ${winner} 🎉`;
+        
+        // 로그 기록 추가
+        const now = new Date();
+        const timeString = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
+        
+        state.history.unshift({ name: winner, time: timeString }); // 최신 기록이 위로 오도록 배열 맨 앞에 추가
+
+        // 중복 제외 로직 처리
+        if (els.excludeBox.checked) {
+            state.candidates.splice(winnerIndex, 1);
+        }
+
+        // 버튼 상태 복구
+        els.drawBtn.disabled = false;
+        els.drawBtn.innerText = '🚀 추첨 시작하기';
+
+        saveState();
+    }
+
+    // UI 렌더링 함수
+    function render() {
+        // 1. 후보 명단 렌더링
+        els.count.innerText = `${state.candidates.length}명`;
+        
+        if (state.candidates.length === 0) {
+            els.list.innerHTML = `<li class="empty-state">대기열이 비어있습니다.</li>`;
+            els.drawBtn.disabled = true;
+        } else {
+            els.drawBtn.disabled = false;
+            els.list.innerHTML = state.candidates.map((name, index) => `
+                <li class="candidate-item">
+                    <span>${escapeHTML(name)}</span>
+                    <button onclick="removeCandidate(${index})">삭제</button>
+                </li>
+            `).join('');
+        }
+
+        // 2. 추첨 로그 렌더링
+        if (state.history.length === 0) {
+            els.historyList.innerHTML = `<li class="empty-state" style="padding: 1rem;">기록이 없습니다.</li>`;
+        } else {
+            els.historyList.innerHTML = state.history.map(item => `
+                <li class="history-item">
+                    <strong>${escapeHTML(item.name)}</strong>
+                    <span class="history-time">${item.time}</span>
+                </li>
+            `).join('');
+        }
+    }
+
+    // XSS 방지를 위한 간단한 이스케이프 함수
+    function escapeHTML(str) {
+        return str.replace(/[&<>'"]/g, 
+            tag => ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                "'": '&#39;',
+                '"': '&quot;'
+            }[tag] || tag)
+        );
+    }
+
+    // 앱 시작
+    init();
+
+</script>
+</body>
+</html>
